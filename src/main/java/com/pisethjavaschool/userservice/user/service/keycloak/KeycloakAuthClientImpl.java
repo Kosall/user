@@ -10,6 +10,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pisethjavaschool.userservice.config.KeycloakProperties;
 import com.pisethjavaschool.userservice.user.dto.LoginResponse;
+import com.pisethjavaschool.userservice.user.exception.AccountNotFullySetUpException;
+import com.pisethjavaschool.userservice.user.exception.InvalidCredentialException;
+import com.pisethjavaschool.userservice.user.exception.KeycloakIntegrationException;
 import com.pisethjavaschool.userservice.user.util.LogMasker;
 
 import lombok.RequiredArgsConstructor;
@@ -44,18 +47,37 @@ public class KeycloakAuthClientImpl implements KeycloakAuthClient {
                 );
     }
 
-    private Mono<LoginResponse> handleLoginResponse(boolean hasError, String body) {
-        if (hasError) {
-            log.error("Keycloak login failed. Body: {}", body);
+//    private Mono<LoginResponse> handleLoginResponse(boolean hasError, String body) {
+//        if (hasError) {
+//            log.error("Keycloak login failed. Body: {}", body);
+//
+//            return Mono.error(new InvalidPinException(
+//                    "Keycloak login failed: " + body
+//            ));
+//        }
+//
+//        return toLoginResponse(body);
+//    }
 
-            return Mono.error(new IllegalStateException(
-                    "Keycloak login failed: " + body
-            ));
+    private Mono<LoginResponse> handleLoginResponse(boolean hasError, String body) {
+        if (!hasError) {
+            return toLoginResponse(body);
         }
 
-        return toLoginResponse(body);
-    }
+        log.warn("Keycloak login failed. Body: {}", body);
 
+        if (body.contains("Account is not fully set up")) {
+            return Mono.error(new AccountNotFullySetUpException());
+        }
+
+        if (body.contains("invalid_grant")) {
+            return Mono.error(new InvalidCredentialException());
+        }
+
+        return Mono.error(new KeycloakIntegrationException(
+                "Unable to login at the moment. Please try again later."
+        ));
+    }
     private Mono<LoginResponse> toLoginResponse(String body) {
         try {
             Map<?, ?> response = objectMapper.readValue(body, Map.class);

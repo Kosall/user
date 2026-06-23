@@ -1,6 +1,5 @@
 package com.pisethjavaschool.userservice.user.service.impl;
 
-
 import java.time.Instant;
 
 import org.springframework.stereotype.Service;
@@ -39,50 +38,39 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
-    private final PhoneNumberService phoneNumberService;
-    private final PhoneNormalizer phoneNormalizer;
-    private final UserAccountFinder userAccountFinder;
-    private final UserAccountRepository userAccountRepository;
-    private final KeycloakAuthClient keycloakAuthClient;
-    private final KeycloakAdminClient keycloakAdminClient;
-    private final OtpService otpService;
-    private final LoginValidator loginValidator;
-    private final PinValidator pinValidator;
-    private final UserAccountMapper userAccountMapper;
+	private final PhoneNumberService phoneNumberService;
+	private final PhoneNormalizer phoneNormalizer;
+	private final UserAccountFinder userAccountFinder;
+	private final UserAccountRepository userAccountRepository;
+	private final KeycloakAuthClient keycloakAuthClient;
+	private final KeycloakAdminClient keycloakAdminClient;
+	private final OtpService otpService;
+	private final LoginValidator loginValidator;
+	private final PinValidator pinValidator;
+	private final UserAccountMapper userAccountMapper;
 
-    /*
-    @Override
-    public Mono<LoginResponse> login(LoginRequest request) {
-        NormalizedPhone phone = normalizePhone(request.countryCode(), request.phoneNumber());
+	/*
+	 * @Override public Mono<LoginResponse> login(LoginRequest request) {
+	 * NormalizedPhone phone = normalizePhone(request.countryCode(),
+	 * request.phoneNumber());
+	 * 
+	 * return findLoginAccount(phone, request.userType()) .flatMap(account ->
+	 * keycloakAuthClient.login( phoneNormalizer.toUsername(phone.countryCode(),
+	 * phone.phoneNumber()), request.pin() )); }
+	 */
 
-        return findLoginAccount(phone, request.userType())
-                .flatMap(account -> keycloakAuthClient.login(
-                        phoneNormalizer.toUsername(phone.countryCode(), phone.phoneNumber()),
-                        request.pin()
-                ));
-    }
-    */
-    
-    @Override
-    public Mono<LoginResponse> login(LoginRequest request) {
-        NormalizedPhone phone = normalizePhone(request.countryCode(), request.phoneNumber());
+	@Override
+	public Mono<LoginResponse> login(LoginRequest request) {
+		NormalizedPhone phone = normalizePhone(request.countryCode(), request.phoneNumber());
 
-        log.info(
-                "Login requested. userType={}, phone={}",
-                request.userType(),
-                LogMasker.maskPhone(phone.phoneNumber())
-        );
+		log.info("Login requested. userType={}, phone={}", request.userType(),
+				LogMasker.maskPhone(phone.phoneNumber()));
 
-        return findLoginAccount(phone, request.userType())
-                .flatMap(account -> keycloakAuthClient.login(
-                        phoneNormalizer.toUsername(phone.countryCode(), phone.phoneNumber()),
-                        request.pin()
-                ))
-                .doOnSuccess(response -> log.info(
-                        "Login successful. userType={}, phone={}",
-                        request.userType(),
-                        LogMasker.maskPhone(phone.phoneNumber())
-               ))
+		return findLoginAccount(phone, request.userType())
+				.flatMap(account -> keycloakAuthClient
+						.login(phoneNormalizer.toUsername(phone.countryCode(), phone.phoneNumber()), request.pin()))
+				.doOnSuccess(response -> log.info("Login successful. userType={}, phone={}", request.userType(),
+						LogMasker.maskPhone(phone.phoneNumber())))
 //                        .doOnError(error -> log.warn(
 //                        "Loging failed. userType={}, phone={}, reason={}",
 //                        request.userType(),
@@ -90,92 +78,90 @@ public class AuthServiceImpl implements AuthService {
 //                        error.getMessage()
 //                ));
 //               
-                .onErrorMap(err->new InvalidPinException(err.getMessage()));
-    }
+				.onErrorMap(err -> new InvalidPinException(err.getMessage()));
+	}
 
-    /*
-    @Override
-    public Mono<Void> requestForgotPinOtp(ForgotPinRequest request) {
-        NormalizedPhone phone = normalizePhone(request.countryCode(), request.phoneNumber());
+	/*
+	 * @Override public Mono<Void> requestForgotPinOtp(ForgotPinRequest request) {
+	 * NormalizedPhone phone = normalizePhone(request.countryCode(),
+	 * request.phoneNumber());
+	 * 
+	 * return findLoginAccount(phone, request.userType()) .then(otpService.sendOtp(
+	 * phone.countryCode(), phone.phoneNumber(), OtpPurpose.FORGOT_PIN )); }
+	 */
 
-        return findLoginAccount(phone, request.userType())
-                .then(otpService.sendOtp(
-                        phone.countryCode(),
-                        phone.phoneNumber(),
-                        OtpPurpose.FORGOT_PIN
-                ));
-    }
-    */
-    
-    @Override
-    public Mono<Void> requestForgotPinOtp(ForgotPinRequest request) {
-        NormalizedPhone phone = normalizePhone(request.countryCode(), request.phoneNumber());
+	@Override
+	public Mono<Void> requestForgotPinOtp(ForgotPinRequest request) {
+		NormalizedPhone phone = normalizePhone(request.countryCode(), request.phoneNumber());
 
-        log.info(
-                "Forgot PIN OTP requested. userType={}, phone={}",
-                request.userType(),
-                LogMasker.maskPhone(phone.phoneNumber())
-        );
+		log.info("Forgot PIN OTP requested. userType={}, phone={}", request.userType(),
+				LogMasker.maskPhone(phone.phoneNumber()));
 
-        return findLoginAccount(phone, request.userType())
-                .then(otpService.sendOtp(
-                        phone.countryCode(),
-                        phone.phoneNumber(),
-                        OtpPurpose.FORGOT_PIN
-                ))
-                .doOnSuccess(ignored -> log.info(
-                        "Forgot PIN OTP sent. userType={}, phone={}",
-                        request.userType(),
-                        LogMasker.maskPhone(phone.phoneNumber())
-                ))
-                .doOnError(error -> log.warn(
-                        "Forgot PIN OTP request failed. userType={}, phone={}, reason={}",
-                        request.userType(),
-                        LogMasker.maskPhone(phone.phoneNumber()),
-                        error.getMessage()
-                ));
-    }
+		return findLoginAccount(phone, request.userType())
+				.then(otpService.sendOtp(phone.countryCode(), phone.phoneNumber(), OtpPurpose.FORGOT_PIN))
+				.doOnSuccess(ignored -> log.info("Forgot PIN OTP sent. userType={}, phone={}", request.userType(),
+						LogMasker.maskPhone(phone.phoneNumber())))
+				.doOnError(error -> log.warn("Forgot PIN OTP request failed. userType={}, phone={}, reason={}",
+						request.userType(), LogMasker.maskPhone(phone.phoneNumber()), error.getMessage()));
+	}
 
-    @Override
-    @Transactional
-    public Mono<UserAccountResponse> resetPin(ResetPinRequest request) {
-        pinValidator.validateMatched(request.pin(), request.confirmPin());
+	/*
+	 * @Override
+	 * 
+	 * @Transactional public Mono<UserAccountResponse> resetPin(ResetPinRequest
+	 * request) { pinValidator.validateMatched(request.pin(), request.confirmPin());
+	 * 
+	 * NormalizedPhone phone = normalizePhone(request.countryCode(),
+	 * request.phoneNumber());
+	 * 
+	 * return findLoginAccount(phone, request.userType()) .flatMap(account ->
+	 * otpService.verifyOtp( phone.countryCode(), phone.phoneNumber(),
+	 * OtpPurpose.FORGOT_PIN, request.otpCode() )
+	 * .then(keycloakAdminClient.resetPassword(toResetPasswordRequest(account,
+	 * request.pin()))) .then(updateLastModifiedAt(account)))
+	 * .map(userAccountMapper::toResponse);
+	 * 
+	 * }
+	 */
 
-        NormalizedPhone phone = normalizePhone(request.countryCode(), request.phoneNumber());
+	private KeycloakResetPasswordRequest toResetPasswordRequest(UserAccount account, String pin) {
+		return new KeycloakResetPasswordRequest(account.getKeycloakUserId(), pin, false);
+	}
 
-        return findLoginAccount(phone, request.userType())
-                .flatMap(account -> otpService.verifyOtp(
-                                phone.countryCode(),
-                                phone.phoneNumber(),
-                                OtpPurpose.FORGOT_PIN,
-                                request.otpCode()
-                        )
-                        .then(keycloakAdminClient.resetPassword(toResetPasswordRequest(account, request.pin())))
-                        .then(updateLastModifiedAt(account)))
-                .map(userAccountMapper::toResponse);
-        
-    }
+	private NormalizedPhone normalizePhone(String countryCode, String phoneNumber) {
+		return phoneNumberService.normalize(countryCode, phoneNumber);
+	}
 
-    private KeycloakResetPasswordRequest toResetPasswordRequest(UserAccount account, String pin) {
-        return new KeycloakResetPasswordRequest(
-                account.getKeycloakUserId(),
-                pin,
-                false
-        );
-    }
+	private Mono<UserAccount> findLoginAccount(NormalizedPhone phone, UserType userType) {
+		return userAccountFinder.findRequiredByPhoneAndUserType(phone, userType)
+				.flatMap(account -> loginValidator.validateCanLogin(account).thenReturn(account));
+	}
 
-    private NormalizedPhone normalizePhone(String countryCode, String phoneNumber) {
-        return phoneNumberService.normalize(countryCode, phoneNumber);
-    }
+	private Mono<UserAccount> updateLastModifiedAt(UserAccount account) {
+		account.setUpdatedAt(Instant.now());
 
-    private Mono<UserAccount> findLoginAccount(NormalizedPhone phone, UserType userType) {
-        return userAccountFinder.findRequiredByPhoneAndUserType(phone, userType)
-                .flatMap(account -> loginValidator.validateCanLogin(account).thenReturn(account));
-    }
+		return userAccountRepository.save(account);
+	}
 
-    private Mono<UserAccount> updateLastModifiedAt(UserAccount account) {
-        account.setUpdatedAt(Instant.now());
+	@Override
+	@Transactional
+	public Mono<UserAccountResponse> resetPin(ResetPinRequest request) {
+		 pinValidator.validateMatched(request.pin(), request.confirmPin());
 
-        return userAccountRepository.save(account);
-    }
+	        NormalizedPhone phone = normalizePhone(request.countryCode(), request.phoneNumber());
+
+	        return findLoginAccount(phone, request.userType())
+	                .flatMap(account -> otpService.verifyOtp(
+	                                phone.countryCode(),
+	                                phone.phoneNumber(),
+	                                OtpPurpose.FORGOT_PIN,
+	                                request.otpCode()
+	                        )
+	                        .then(keycloakAdminClient.resetPassword(toResetPasswordRequest(account, request.pin())))
+	                        .then(updateLastModifiedAt(account)))
+	                .map(userAccountMapper::toResponse);
+	}
+	
+
+	    
 }

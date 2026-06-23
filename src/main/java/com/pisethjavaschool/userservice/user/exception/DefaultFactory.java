@@ -31,10 +31,11 @@ public class DefaultFactory implements ProblemDetailFactory {
 	public ProblemDetail create(HttpStatus status, String message, String errorCode, ServerWebExchange exchange) {
 		ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, message);
 		pd.setTitle(status.getReasonPhrase());
+		pd.setProperty("message","Invalid pin or user");
 		pd.setProperty("timestamp", Instant.now());
 		pd.setProperty("path", exchange.getRequest().getPath().value());
 		pd.setProperty("errorCode", errorCode);
-		pd.setProperty("service", "room-service");
+		pd.setProperty("service", "user-service");
 		return pd;
 	}
 
